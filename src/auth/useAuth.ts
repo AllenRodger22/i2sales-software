@@ -121,11 +121,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refresh,
   }), [user, session, loading, error, signUp, signIn, signOutFn, refresh]);
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  // Evite JSX para permitir que este arquivo seja um .ts puro.
+  return React.createElement(AuthContext.Provider, { value }, children);
 };
 
 export function useAuth(): AuthContextValue {
