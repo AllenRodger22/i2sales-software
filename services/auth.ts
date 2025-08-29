@@ -31,13 +31,13 @@ export const updatePassword = (password: string) => {
 
 // Unified me endpoint via JWKS-based auth
 export const getMe = async (): Promise<User> => {
-  const data = await apiClient.get<{ user: User; profile?: any; routing?: any }>('/api/me');
+  const data = await apiClient.get<{ user: User; profile?: any; routing?: any }>('/auth/me');
   return data.user;
 };
 
 export const getMeFull = async () => {
   try {
-    return await apiClient.get<{ user: User; profile?: any; routing?: any }>('/api/me');
+    return await apiClient.get<{ user: User; profile?: any; routing?: any }>('/auth/me');
   } catch (err) {
     // On 401, do not attempt ensure; propagate to caller
     if (err instanceof ApiError && err.status === 401) {
@@ -52,8 +52,8 @@ export const getMeFull = async () => {
       const name = (meta.name || (sUser?.email ? sUser.email.split('@')[0] : '') || '').toString();
       if (sUser && sUser.email) {
         await ensureUser({ authId: sUser.id, email: sUser.email, name, role: role as Role });
-        // retry /api/me once after ensuring
-        return await apiClient.get<{ user: User; profile?: any; routing?: any }>('/api/me');
+        // retry /auth/me once after ensuring
+        return await apiClient.get<{ user: User; profile?: any; routing?: any }>('/auth/me');
       }
     } catch (_) {
       // ignore and rethrow original error
