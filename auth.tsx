@@ -130,6 +130,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
       setToken(session?.access_token ?? null);
 
+      if (event === 'SIGNED_IN') {
+        console.log('SIGNED_IN', session);
+      }
+
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setError(null);
         await fetchBackendUser();
@@ -156,8 +160,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setState('loading');
     setError(null);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+
+      if (data?.session) {
+        setToken(data.session.access_token);
+        if (data.user?.email) {
+          const meta: any = data.user.user_metadata || {};
+          const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
+          const r = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
+          setUser({ id: data.user.id, email: data.user.email, name: meta.name || data.user.email.split('@')[0], role: r as any });
+        }
+        console.log('200');
+      }
 
       // opcionalmente garante existência no backend
       try {
@@ -176,10 +191,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (_) { /* ignore ensure errors */ }
 
-      // Dispara a busca pelo perfil no backend sem bloquear a navegação.
-      // Qualquer atualização de estado será tratada por `fetchBackendUser`/onAuthStateChange.
-      fetchBackendUser().catch(() => {/* handled internamente */});
-      navigate('/dashboard', { replace: true });
+      const loaded = await fetchBackendUser();
+      if (loaded) {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err: any) {
       console.error('Login failed', err);
       setError(mapAuthError(err?.message));
