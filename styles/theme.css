@@ -1,0 +1,192 @@
+/* i2Sales Dark Glasmorphism Theme */
+
+:root {
+  --bg: #0d1423;
+  /* Glass surfaces (semi-transparent frosted) */
+  --surface: rgba(17, 24, 39, 0.42);
+  --surface-strong: rgba(17, 24, 39, 0.62);
+  --text: #e7e9ee; /* slightly softer than pure white */
+  --muted: #b0b7c3;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --shadow: 0 10px 28px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  --radius: 16px;
+  --radius-lg: 20px;
+  --accent: #fb7a1d; /* subtle, slightly lighter */
+  --accent-600: #ef6a10;
+  /* Inputs: dark navy blue glass */
+  --input-surface: rgba(12, 23, 43, 0.92); /* deep blue */
+  --input-border: rgba(255, 255, 255, 0.16);
+}
+
+html, body {
+  background: radial-gradient(1200px 800px at -10% -10%, #101a32 0%, transparent 60%),
+              radial-gradient(1000px 600px at 110% 10%, #0c162b 0%, transparent 60%),
+              var(--bg);
+  color: var(--text);
+}
+
+/* Glasmorphism helpers */
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  backdrop-filter: saturate(140%) blur(16px);
+  -webkit-backdrop-filter: saturate(140%) blur(16px);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.glass-strong {
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: saturate(160%) blur(22px);
+  -webkit-backdrop-filter: saturate(160%) blur(22px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.glass-hover:hover {
+  border-color: var(--border-strong);
+  background: rgba(17, 24, 39, 0.66);
+}
+
+/* Inputs */
+.input-glass {
+  width: 100%;
+  background: var(--input-surface);
+  border: 1px solid var(--input-border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 0.75rem 0.875rem;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.input-glass:focus {
+  outline: none;
+  border-color: var(--input-border);
+  box-shadow: none;
+  background: var(--input-surface);
+}
+
+/* Global override so existing Tailwind inputs get darker surface even without class changes */
+input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+textarea,
+select {
+  background: var(--input-surface) !important;
+  border-color: var(--input-border) !important;
+  color: #ffffff !important; /* force white text inside inputs */
+  caret-color: #ffffff !important;
+  color-scheme: dark;
+  backdrop-filter: blur(22px) !important;
+  -webkit-backdrop-filter: blur(22px) !important;
+}
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--input-border) !important; /* keep subtle */
+  box-shadow: none !important;
+}
+
+/* Fix Chrome autofill painting white background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 0 0px 1000px var(--input-surface) inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Auth forest background with glass feel */
+/* Auth forest background with glass feel */
+.auth-forest {
+  position: relative;
+  z-index: 0; /* establish stacking context above body */
+}
+.auth-forest::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1920&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
+  filter: blur(10px) saturate(1.1) brightness(0.82);
+  transform: scale(1.02);
+  z-index: 0;
+}
+.auth-forest::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(2,6,23,0.45) 0%, rgba(2,6,23,0.65) 100%);
+  z-index: 0;
+}
+
+/* Ensure auth content sits above background layers */
+.auth-forest > * { position: relative; z-index: 1; }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: all .2s ease;
+}
+.btn:disabled { opacity: .7; cursor: not-allowed; }
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-600) 100%);
+  color: white;
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.18), inset 0 1px 0 rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.btn-primary:hover { filter: brightness(1.03); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn-ghost:hover { background: rgba(255, 255, 255, 0.06); }
+
+/* Chips/Badges */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+}
+.chip-active {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.35);
+  color: #fdba74; /* orange-300 */
+}
+
+/* Card title */
+.card-title {
+  font-weight: 700;
+  color: #e5e7eb;
+}
+
+/* Utility: subtle divider */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 10%, rgba(255,255,255,0.08) 90%, transparent 100%);
+}
