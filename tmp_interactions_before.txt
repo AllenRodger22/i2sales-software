@@ -1,0 +1,19 @@
+1	import { apiClient } from './apiClient';
+2	import { Interaction } from '../types';
+3	
+4	export async function createInteraction(
+5	    params: { clientId: string; userId: string; type: string; observation?: string; explicitNext?: string | null; }
+6	): Promise<any> {
+7	    // userId is now inferred by the backend from the token, so we don't need to send it.
+8	    const { userId, ...payload } = params;
+9	    return apiClient.post('/interactions', payload);
+10	}
+11	
+12	export async function listInteractionsByClient(clientId: string): Promise<Interaction[]> {
+13	  // Esta função não é mais necessária, pois o endpoint `GET /clients/:clientId`
+14	  // já retorna as interações. Ela é mantida aqui para referência, caso seja
+15	  // necessário um endpoint que busque apenas as interações no futuro.
+16	  console.warn("listInteractionsByClient is deprecated. Interactions are fetched with the client.");
+17	  const client = await apiClient.get<{ interactions: Interaction[] }>(`/clients/${clientId}`);
+18	  return client.interactions || [];
+19	}
