@@ -27,12 +27,10 @@ const RegisterPage: React.FC = () => {
             const { confirmationSent } = await register(name, email, password, role);
 
             if (confirmationSent) {
-                setSuccessMessage('Conta criada! Por favor, verifique seu e-mail para confirmar sua conta antes de fazer login.');
+                setSuccessMessage('Conta criada! Verifique seu e-mail para confirmar.');
             } else {
-                setSuccessMessage('Conta criada com sucesso! Redirecionando para o login...');
-                setTimeout(() => {
-                    navigate('/login');
-                }, 2000);
+                // AuthProvider fará o login + /api/me e redirecionará para o dashboard adequado
+                setSuccessMessage('Conta criada com sucesso! Redirecionando para o dashboard...');
             }
         } catch (err: any) {
              if (err.message && err.message.toLowerCase().includes('email already exists')) {

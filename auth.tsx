@@ -163,30 +163,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setState('loading');
     setError(null);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          // Opcional: salva metadados úteis para você no Supabase
-          data: { name, requested_role: role, role },
-          // IMPORTANTE: quando usando HashRouter, NÃO inclua '#/rota' no redirectTo.
-          // Use apenas a origem (SITE_URL). O Supabase vai anexar '#access_token=...'
-          // e o SDK detecta a sessão corretamente.
-          emailRedirectTo: SITE_URL,
-        },
-      });
-      if (error) throw error;
-      const confirmationSent = !data.session; // se null, confirmação por email está ativa
-      if (!confirmationSent) {
-        // Já autenticado; buscar perfil e seguir para dashboard
-        await fetchBackendUser();
-        navigate('/dashboard', { replace: true });
+      // 1) Registrar no backend: POST /api/v1/auth/register
+      //    O apiClient já usa BASE_URL e não envia Authorization antes do login
+      await authService.register({ name, email, password, role });
+
+      // 2) Login no Supabase com as mesmas credenciais
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) throw signInError;
+
+      // 3) Recuperar token/sessão e consultar /api/me
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Sessão não disponível após login.');
       }
-      setState('guest');
-      return { confirmationSent };
+
+      // 4) Buscar perfil do backend e redirecionar conforme routing.target/role
+      await fetchBackendUser();
+
+      // O listener onAuthStateChange também chamará fetchBackendUser; manter estado consistente
+      setError(null);
+      return { confirmationSent: false };
     } catch (err: any) {
-      console.error('Registration failed', err);
-      setError(mapAuthError(err?.message));
+      console.error('Registration flow failed', err);
+      // Mapear 409 do backend explicitamente
+      if (err?.status === 409 || (err?.message && String(err.message).toLowerCase().includes('already'))) {
+        setError('Um usuário com este e-mail já existe.');
+      } else {
+        setError(mapAuthError(err?.message));
+      }
       setState('guest');
       throw err;
     }
@@ -262,4 +266,5 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     </AuthContext.Provider>
   );
 };
+
 

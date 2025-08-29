@@ -32,7 +32,8 @@ const LoginPage: React.FC = () => {
     
     try {
       await login(email, password);
-      // AuthProvider will handle navigation on success
+      // Garante navegação imediata após login
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       // AuthProvider sets the error, which is picked up by the useEffect
       console.error(err);
