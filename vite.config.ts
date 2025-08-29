@@ -1,24 +1,16 @@
 import path from 'path'
-import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(() => ({
   plugins: [react()],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'), // fica estável no build
-    },
-  },
-  build: {
-    outDir: 'dist', // Vercel espera isso (ou configure no vercel.json)
+    alias: { '@': path.resolve(__dirname, '.') },
   },
   server: {
     proxy: {
-      // DEV ONLY: evita CORS no localhost
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
+      // DEV only! Em produção isso não existe.
+      '/api': { target: 'http://localhost:5000', changeOrigin: true },
     },
   },
 }))
