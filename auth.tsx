@@ -1,7 +1,7 @@
 import React, { createContext, useState, ReactNode, useContext, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Role } from './types';
-import { ApiError } from './services/apiClient';
+import { ApiError } from './services/api';
 import { supabase } from './src/lib/supabaseClient';
 import * as authService from './services/auth'; // manter apenas para getMe()
 import { ensureUser } from './services/users';
@@ -58,41 +58,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchBackendUser = useCallback(async () => {
     try {
-      const me = await authService.getMeFull();
-      setUser(me.user);
+      const me = await authService.getMe();
+      setUser(me);
       setState('authed');
-      // Usa routing do backend quando disponível
-      const rt = me?.routing?.target || '/app';
-      const map: Record<string, string> = {
-        '/admin': '/dashboard/admin',
-        '/manager': '/dashboard/manager',
-        '/app': '/dashboard/broker',
-        '/onboarding': '/dashboard',
-      };
-      const target = map[rt] || '/dashboard';
-      navigate(target, { replace: true });
     } catch (err) {
-      console.warn('Falha ao carregar usuário do backend. Tentando fallback do Supabase...', err);
-      // Tenta sempre o fallback via Supabase (mesmo em 401), para não travar navegação em dev
-      try {
-        const { data: { user: sUser } } = await supabase.auth.getUser();
-        const meta: any = sUser?.user_metadata || {};
-        const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
-        const role = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
-        if (sUser && sUser.email) {
-          setUser({
-            id: sUser.id,
-            name: meta.name || (sUser.email.split('@')[0]),
-            email: sUser.email,
-            role: role as any,
-          });
-          setState('authed');
-          navigate('/dashboard', { replace: true });
-          return;
-        }
-      } catch (_) { /* ignore - handled below */ }
-
-      // Se não conseguir fallback, trata 401 com signOut; outros erros liberam UI como guest
       if (err instanceof ApiError && err.status === 401) {
         await supabase.auth.signOut();
         setUser(null);
@@ -150,31 +119,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      // Garante que o usuário exista no backend (ownerId = sub)
-      const { data: { user: sUser } } = await supabase.auth.getUser();
+
+      // opcionalmente garante existência no backend
       try {
+        const { data: { user: sUser } } = await supabase.auth.getUser();
         if (sUser?.email) {
           const meta: any = sUser.user_metadata || {};
           const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
           const r = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
-          await ensureUser({ authId: sUser.id, ownerId: meta.sub || sUser.id, email: sUser.email, name: meta.name || (sUser.email.split('@')[0]), role: r as any });
+          await ensureUser({
+            authId: sUser.id,
+            ownerId: meta.sub || sUser.id,
+            email: sUser.email,
+            name: meta.name || sUser.email.split('@')[0],
+            role: r as any,
+          });
         }
-      } catch (_) { /* se falhar, seguimos com o fluxo; fetchBackendUser tenta novamente */ }
-      // Sinaliza usuário provisório a partir do token (para redirecionar por role sem esperar /auth/me)
-      const meta: any = sUser?.user_metadata || {};
-      const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
-      const role = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
-      if (sUser && sUser.email) {
-        const r = role as any;
-        setUser({ id: sUser.id, name: meta.name || (sUser.email.split('@')[0]), email: sUser.email, role: r });
-        setState('authed');
-        // Redireciona imediatamente pela role do token
-        const dest = r === 'ADMIN' ? '/dashboard/admin' : r === 'MANAGER' ? '/dashboard/manager' : '/dashboard/broker';
-        navigate(dest, { replace: true });
-      } else {
-        // Sem user, segue para dashboard genérico; Redirector cuidará
-        navigate('/dashboard', { replace: true });
-      }
+      } catch (_) { /* ignore ensure errors */ }
+
+      const me = await authService.getMe();
+      setUser(me);
+      setState('authed');
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       console.error('Login failed', err);
       setError(mapAuthError(err?.message));

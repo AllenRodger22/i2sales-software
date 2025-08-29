@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient } from './api';
 import { ProductivityData, FunnelAnalyticsData, Role } from '../types';
 
 export async function getBrokerKpis(_currentUserId: string): Promise<{ // userId is now inferred from token
