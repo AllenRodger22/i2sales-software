@@ -56,11 +56,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const fetchBackendUser = useCallback(async () => {
+  const fetchBackendUser = useCallback(async (): Promise<boolean> => {
     try {
       const me = await authService.getMe();
       setUser(me);
       setState('authed');
+      return true;
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         await supabase.auth.signOut();
@@ -69,9 +70,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setState('guest');
         navigate('/login', { replace: true });
       } else {
+        // Fallback: usa dados básicos do Supabase quando o backend não responde
+        try {
+          const { data: { user: sUser } } = await supabase.auth.getUser();
+          if (sUser && sUser.email) {
+            const meta: any = sUser.user_metadata || {};
+            const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
+            const r = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
+            setUser({
+              id: sUser.id,
+              email: sUser.email,
+              name: meta.name || sUser.email.split('@')[0],
+              role: r as any,
+            });
+            setState('authed');
+            setError('Perfil básico carregado; alguns dados podem estar indisponíveis.');
+            return true;
+          }
+        } catch (_) {
+          /* ignore */
+        }
         setError('Não foi possível carregar seu perfil.');
         setState('guest');
       }
+      return false;
     }
   }, [navigate]);
 
@@ -137,10 +159,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (_) { /* ignore ensure errors */ }
 
-      const me = await authService.getMe();
-      setUser(me);
-      setState('authed');
-      navigate('/dashboard', { replace: true });
+      const ok = await fetchBackendUser();
+      if (ok) {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err: any) {
       console.error('Login failed', err);
       setError(mapAuthError(err?.message));
