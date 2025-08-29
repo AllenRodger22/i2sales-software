@@ -76,6 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const me = await withTimeout(authService.getMe(), 5000);
       setUser(me);
       setState('authed');
+      localStorage.setItem('userId', me.id);
       return true;
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -84,6 +85,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setToken(null);
         setState('guest');
         navigate('/login', { replace: true });
+        localStorage.removeItem('userId');
       } else {
         console.warn('Falha ao obter perfil do backend, usando fallback do Supabase', err);
         // Fallback: usa dados básicos do Supabase quando o backend não responde
@@ -100,6 +102,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               role: r as any,
             });
             setState('authed');
+            localStorage.setItem('userId', sUser.id);
             setError('Backend indisponível; alguns dados podem estar incompletos.');
             return true;
           }
@@ -142,6 +145,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setState('guest');
+        localStorage.removeItem('userId');
         navigate('/login', { replace: true });
       }
 
@@ -170,6 +174,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
           const r = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
           setUser({ id: data.user.id, email: data.user.email, name: meta.name || data.user.email.split('@')[0], role: r as any });
+          localStorage.setItem('userId', data.user.id);
         }
         console.log('200');
       }
@@ -293,6 +298,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
     setToken(null);
     setState('guest');
+    localStorage.removeItem('userId');
     navigate('/login', { replace: true });
   }, [navigate]);
 
