@@ -176,10 +176,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (_) { /* ignore ensure errors */ }
 
-      const ok = await fetchBackendUser();
-      if (ok) {
-        navigate('/dashboard', { replace: true });
-      }
+      // Dispara a busca pelo perfil no backend sem bloquear a navegação.
+      // Qualquer atualização de estado será tratada por `fetchBackendUser`/onAuthStateChange.
+      fetchBackendUser().catch(() => {/* handled internamente */});
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       console.error('Login failed', err);
       setError(mapAuthError(err?.message));
