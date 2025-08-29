@@ -1,28 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 
 // Página de Login/Registro combinada com UI minimalista (glassmorphism)
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { signIn, signUp, error, user } = useAuth();
+  const { signIn, signUp, error, profile } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const from = (location.state as any)?.from?.pathname || '/';
-
-  // Se o usuário já estiver autenticado (por exemplo, após o login completar
-  // e o estado global ser atualizado), redireciona para a rota original ou
-  // para a raiz como fallback.
   useEffect(() => {
-    if (user) {
-      navigate(from, { replace: true });
+    if (!profile) return;
+    if (profile.role === 'BROKER') {
+      navigate('/broker/dashboard', { replace: true });
+    } else if (profile.role === 'MANAGER' || profile.role === 'ADMIN') {
+      navigate('/manager/dashboard', { replace: true });
     }
-  }, [user, from, navigate]);
+  }, [profile, navigate]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
