@@ -13,6 +13,10 @@ async function loadSupabase() {
   return mod;
 }
 
+const isMaster = () => {
+  try { return (import.meta as any)?.env?.VITE_ENABLE_MASTER_LOGIN === '1' && window.localStorage.getItem('i2s-master') === '1'; } catch { return false; }
+};
+
 function mapDbToUi(c: DbClient): Client {
   return {
     id: c.id,
@@ -45,6 +49,11 @@ function mapUiPatchToDb(fields: Partial<Client>): Partial<DbClient> {
 
 export async function getAllClients(params: { q?: string; status?: string; }): Promise<Client[]> {
   if (USE_SUPABASE) {
+    if (isMaster()) {
+      const { default: MOCK } = await import('./mockApi');
+      const mapped = (MOCK as unknown as DbClient[]).map(mapDbToUi);
+      return mapped;
+    }
     const { listClients } = await loadSupabase();
     const dbList = await listClients();
     const q = (params.q || '').trim().toLowerCase();
@@ -67,6 +76,12 @@ export async function getAllClients(params: { q?: string; status?: string; }): P
 
 export const getClient = async (clientId: string): Promise<Client> => {
   if (USE_SUPABASE) {
+    if (isMaster()) {
+      const { default: MOCK } = await import('./mockApi');
+      const found = (MOCK as any[]).find((m) => m.id === clientId) as unknown as DbClient | undefined;
+      const mapped = found ? mapDbToUi(found) : (null as any);
+      return mapped ?? Promise.reject(new Error('Cliente não encontrado'));
+    }
     const { getClient: getDbClient, listInteractions } = await loadSupabase();
     const c = await getDbClient(clientId);
     const rows: DbInteraction[] = await listInteractions(clientId);
@@ -158,4 +173,3 @@ export const exportClients = async (): Promise<Blob> => {
   }
   return apiClient.get<Blob>('/clients/export');
 };
-

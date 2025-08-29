@@ -109,6 +109,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Inicializa sessão do Supabase
   useEffect(() => {
     (async () => {
+      // Master bypass persisted in localStorage (env-gated)
+      const MASTER_ENABLED = (import.meta as any)?.env?.VITE_ENABLE_MASTER_LOGIN === '1';
+      const MASTER_EMAIL = ((import.meta as any)?.env?.VITE_MASTER_EMAIL || 'Master@sudo.com').toString();
+      if (MASTER_ENABLED && typeof window !== 'undefined' && window.localStorage.getItem('i2s-master') === '1') {
+        setUser({ id: 'master', name: 'Master User', email: MASTER_EMAIL, role: 'ADMIN' });
+        setState('authed');
+        navigate('/dashboard/admin', { replace: true });
+        return;
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setToken(session.access_token);
@@ -148,6 +157,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setState('loading');
     setError(null);
     try {
+      // Master bypass (env-gated)
+      const MASTER_ENABLED = (import.meta as any)?.env?.VITE_ENABLE_MASTER_LOGIN === '1';
+      const MASTER_EMAIL = ((import.meta as any)?.env?.VITE_MASTER_EMAIL || 'Master@sudo.com').toString();
+      const MASTER_PASSWORD = ((import.meta as any)?.env?.VITE_MASTER_PASSWORD || 'sudoapt').toString();
+      if (MASTER_ENABLED && email.trim().toLowerCase() === MASTER_EMAIL.toLowerCase() && password === MASTER_PASSWORD) {
+        const role = 'ADMIN' as Role;
+        const masterUser: User = { id: 'master', name: 'Master User', email: MASTER_EMAIL, role };
+        setUser(masterUser);
+        setState('authed');
+        try { window.localStorage.setItem('i2s-master', '1'); } catch {}
+        const dest = '/dashboard/admin';
+        navigate(dest, { replace: true });
+        return;
+      }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       // Garante que o usuário exista no backend (ownerId = sub)
@@ -269,6 +292,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = useCallback(async () => {
     setError(null);
+    try { window.localStorage.removeItem('i2s-master'); } catch {}
     await supabase.auth.signOut(); // limpa LocalStorage e dispara SIGNED_OUT
     setUser(null);
     setToken(null);

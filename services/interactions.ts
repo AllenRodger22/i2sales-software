@@ -7,6 +7,12 @@ export async function createInteraction(
   params: { clientId: string; userId: string; type: string; observation?: string; explicitNext?: string | null; }
 ): Promise<any> {
   if (USE_SUPABASE) {
+    // Master mode: skip remote write
+    const master = (import.meta as any)?.env?.VITE_ENABLE_MASTER_LOGIN === '1' && (typeof window !== 'undefined' && window.localStorage.getItem('i2s-master') === '1');
+    if (master) {
+      console.warn('MASTER MODE: interação simulada', params);
+      return { ok: true, simulated: true };
+    }
     const { getMe, addInteraction, updateClient } = await import('../src/auth/drivers/supabase');
     const me = await getMe();
     if (!me) throw new Error('Não autenticado');
