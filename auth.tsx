@@ -57,8 +57,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const navigate = useNavigate();
 
   const fetchBackendUser = useCallback(async (): Promise<boolean> => {
+    const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+      return new Promise<T>((resolve, reject) => {
+        const id = setTimeout(() => reject(new Error('timeout')), ms);
+        promise
+          .then((res) => {
+            clearTimeout(id);
+            resolve(res);
+          })
+          .catch((error) => {
+            clearTimeout(id);
+            reject(error);
+          });
+      });
+    };
+
     try {
-      const me = await authService.getMe();
+      const me = await withTimeout(authService.getMe(), 5000);
       setUser(me);
       setState('authed');
       return true;
@@ -70,6 +85,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setState('guest');
         navigate('/login', { replace: true });
       } else {
+        console.warn('Falha ao obter perfil do backend, usando fallback do Supabase', err);
         // Fallback: usa dados básicos do Supabase quando o backend não responde
         try {
           const { data: { user: sUser } } = await supabase.auth.getUser();
@@ -84,12 +100,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               role: r as any,
             });
             setState('authed');
-            setError('Perfil básico carregado; alguns dados podem estar indisponíveis.');
+            setError('Backend indisponível; alguns dados podem estar incompletos.');
             return true;
           }
         } catch (_) {
           /* ignore */
         }
+        console.error('Fallback Supabase também falhou');
         setError('Não foi possível carregar seu perfil.');
         setState('guest');
       }
