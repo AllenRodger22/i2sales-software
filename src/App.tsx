@@ -1,7 +1,8 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/Login';
-import DashboardPage from './pages/Dashboard';
+import BrokerDashboard from './pages/BrokerDashboard';
+import ManagerDashboard from './pages/ManagerDashboard';
 import AuthGate from './auth/AuthGate';
 import { AuthProvider } from './auth/useAuth';
 
@@ -15,13 +16,22 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
-            path="/"
+            path="/broker/dashboard"
             element={
               <AuthGate>
-                <DashboardPage />
+                <BrokerDashboard />
               </AuthGate>
             }
           />
+          <Route
+            path="/manager/dashboard"
+            element={
+              <AuthGate>
+                <ManagerDashboard />
+              </AuthGate>
+            }
+          />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
