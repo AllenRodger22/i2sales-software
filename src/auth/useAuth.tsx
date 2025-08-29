@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
     (async () => {
-      // Master login (bypass) — apenas se habilitado
+      // Master login (bypass) - apenas se habilitado
       const MASTER_ENABLED = (import.meta as any)?.env?.VITE_ENABLE_MASTER_LOGIN === '1';
       const masterActive = typeof window !== 'undefined' && window.localStorage.getItem('i2s-master') === '1';
       if (MASTER_ENABLED && masterActive) {
@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError(null);
       }
       if (event === 'TOKEN_REFRESHED') {
-        // Access token foi atualizado silenciosamente — nada a fazer.
+        // Access token foi atualizado silenciosamente - nada a fazer.
       }
     });
 
@@ -104,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = useCallback(async (email: string, password: string) => {
     setError(null);
-    // Master login (bypass) — somente quando habilitado via env
+    // Master login (bypass) - somente quando habilitado via env
     const MASTER_ENABLED = (import.meta as any)?.env?.VITE_ENABLE_MASTER_LOGIN === '1';
     const MASTER_EMAIL = ((import.meta as any)?.env?.VITE_MASTER_EMAIL || 'Master@sudo.com').toString();
     const MASTER_PASSWORD = ((import.meta as any)?.env?.VITE_MASTER_PASSWORD || 'sudoapt').toString();
@@ -165,3 +165,4 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error('useAuth deve ser usado dentro de <AuthProvider>');
   return ctx;
 }
+
