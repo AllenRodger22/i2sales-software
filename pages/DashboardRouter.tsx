@@ -41,7 +41,7 @@ const ProtectedRoute: React.FC<{ allowedRoles: Role[]; children: React.ReactNode
     return <>{children}</>;
 };
 
-const Dashboard: React.FC = () => {
+const DashboardRouter: React.FC = () => {
   return (
     <DashboardLayout>
       <Routes>
@@ -68,4 +68,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default DashboardRouter;
