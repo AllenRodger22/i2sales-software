@@ -76,15 +76,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Tenta sempre o fallback via Supabase (mesmo em 401), para não travar navegação em dev
       try {
         const { data: { user: sUser } } = await supabase.auth.getUser();
-        const meta: any = sUser?.user_metadata || {};
-        const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
-        const role = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
         if (sUser && sUser.email) {
+          // Prefer role from DB (public.users) when available
+          let finalRole: Role = 'BROKER';
+          try {
+            const { getMe } = await import('./src/auth/drivers/supabase');
+            const dbu = await getMe();
+            if (dbu?.role === 'ADMIN' || dbu?.role === 'MANAGER' || dbu?.role === 'BROKER') {
+              finalRole = dbu.role as Role;
+            }
+          } catch {
+            const meta: any = sUser?.user_metadata || {};
+            const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
+            if (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') {
+              finalRole = roleMeta as Role;
+            }
+          }
+          const meta: any = sUser?.user_metadata || {};
           setUser({
             id: sUser.id,
             name: meta.name || (sUser.email.split('@')[0]),
             email: sUser.email,
-            role: role as any,
+            role: finalRole,
           });
           setState('authed');
           navigate('/dashboard', { replace: true });

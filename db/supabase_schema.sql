@@ -73,12 +73,25 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.interactions ENABLE ROW LEVEL SECURITY;
 
+-- Helper: retorna o papel do usuário corrente baseado na tabela public.users
+CREATE OR REPLACE FUNCTION public.current_user_role()
+RETURNS public.user_role
+LANGUAGE sql
+STABLE
+SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT u.role
+  FROM public.users u
+  WHERE u.auth_uid = auth.uid()
+  LIMIT 1;
+$$;
+
 -- Policies users: self + managers/admins
 DROP POLICY IF EXISTS users_select_self ON public.users;
 CREATE POLICY users_select_self ON public.users
   FOR SELECT USING (
     auth.uid() = auth_uid
-    OR ((auth.jwt() ? 'role') AND (auth.jwt()->>'role') IN ('MANAGER','ADMIN'))
+    OR (public.current_user_role() IN ('MANAGER','ADMIN'))
   );
 
 DROP POLICY IF EXISTS users_update_self ON public.users;
@@ -89,32 +102,32 @@ CREATE POLICY users_update_self ON public.users
 DROP POLICY IF EXISTS users_admin_all ON public.users;
 CREATE POLICY users_admin_all ON public.users
   FOR ALL TO authenticated
-  USING ( (auth.jwt() ? 'role') AND (auth.jwt()->>'role') IN ('MANAGER','ADMIN') )
-  WITH CHECK ( (auth.jwt() ? 'role') AND (auth.jwt()->>'role') IN ('MANAGER','ADMIN') );
+  USING ( public.current_user_role() IN ('MANAGER','ADMIN') )
+  WITH CHECK ( public.current_user_role() IN ('MANAGER','ADMIN') );
 
 -- Policies clients: dono vê/edita + managers/admins veem tudo
 DROP POLICY IF EXISTS clients_read ON public.clients;
 CREATE POLICY clients_read ON public.clients
   FOR SELECT USING (
     owner_id IN (SELECT id FROM public.users WHERE auth_uid = auth.uid())
-    OR ((auth.jwt() ? 'role') AND (auth.jwt()->>'role') IN ('MANAGER','ADMIN'))
+    OR (public.current_user_role() IN ('MANAGER','ADMIN'))
   );
 
 DROP POLICY IF EXISTS clients_write ON public.clients;
 CREATE POLICY clients_write ON public.clients
   FOR INSERT WITH CHECK (
     owner_id IN (SELECT id FROM public.users WHERE auth_uid = auth.uid())
-    OR ((auth.jwt() ? 'role') AND (auth.jwt()->>'role') IN ('MANAGER','ADMIN'))
+    OR (public.current_user_role() IN ('MANAGER','ADMIN'))
   );
 
 CREATE POLICY clients_update ON public.clients
   FOR UPDATE USING (
     owner_id IN (SELECT id FROM public.users WHERE auth_uid = auth.uid())
-    OR ((auth.jwt() ? 'role') AND (auth.jwt()->>'role') IN ('MANAGER','ADMIN'))
+    OR (public.current_user_role() IN ('MANAGER','ADMIN'))
   )
   WITH CHECK (
     owner_id IN (SELECT id FROM public.users WHERE auth_uid = auth.uid())
-    OR ((auth.jwt() ? 'role') AND (auth.jwt()->>'role') IN ('MANAGER','ADMIN'))
+    OR (public.current_user_role() IN ('MANAGER','ADMIN'))
   );
 
 -- Policies interactions: quem participou + managers/admins
@@ -122,15 +135,14 @@ DROP POLICY IF EXISTS interactions_read ON public.interactions;
 CREATE POLICY interactions_read ON public.interactions
   FOR SELECT USING (
     user_id IN (SELECT id FROM public.users WHERE auth_uid = auth.uid())
-    OR ((auth.jwt() ? 'role') AND (auth.jwt()->>'role') IN ('MANAGER','ADMIN'))
+    OR (public.current_user_role() IN ('MANAGER','ADMIN'))
   );
 
 DROP POLICY IF EXISTS interactions_write ON public.interactions;
 CREATE POLICY interactions_write ON public.interactions
   FOR INSERT WITH CHECK (
     user_id IN (SELECT id FROM public.users WHERE auth_uid = auth.uid())
-    OR ((auth.jwt() ? 'role') AND (auth.jwt()->>'role') IN ('MANAGER','ADMIN'))
+    OR (public.current_user_role() IN ('MANAGER','ADMIN'))
   );
 
 -- Observação: password_hash é NULL pois Supabase Auth gerencia senhas em auth.users
-
