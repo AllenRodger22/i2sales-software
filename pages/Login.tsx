@@ -33,8 +33,7 @@ const handleLogin = async (e: React.FormEvent) => {
 
   try {
     setSubmitting(true);
-    // Apenas delega ao AuthProvider; ele fará a navegação após carregar o perfil
-    await login(email, password);
+    await login(email, password);                 // faz o sign-in, atualiza o estado e redireciona
   } catch (err: any) {
     console.error(err);                           // o AuthProvider já povoa o erro
   } finally {
