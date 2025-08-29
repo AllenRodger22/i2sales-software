@@ -149,8 +149,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      // onAuthStateChange cuidará do restante (fetch user + atualização de estado)
-      // A tela de Login tem um useEffect que navega para /dashboard quando state === 'authed'.
+      // Navegação otimista após login; RouteGuard aguardará estado 'authed'.
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       console.error('Login failed', err);
       setError(mapAuthError(err?.message));
@@ -214,15 +214,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Fallback: se ficar em 'loading' por muito tempo sem user, libera para 'guest'
-  useEffect(() => {
-    if (state === 'loading') {
-      const t = setTimeout(() => {
-        if (!user) setState('guest');
-      }, 1500);
-      return () => clearTimeout(t);
-    }
-  }, [state, user]);
+  // Evitar troca prematura para 'guest' enquanto buscamos /api/me após login
+  // Removido o timeout que forçava 'guest' em 1.5s para não causar bounce do RouteGuard
 
   const updatePassword = async (password: string) => {
     setState('loading');
@@ -266,5 +259,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     </AuthContext.Provider>
   );
 };
+
 
 
