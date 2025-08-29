@@ -33,8 +33,7 @@ const handleLogin = async (e: React.FormEvent) => {
 
   try {
     setSubmitting(true);
-    await login(email, password);                 // faz o sign-in e atualiza o estado
-    navigate('/dashboard', { replace: true });   // empurra pro redirector por role
+    await login(email, password);                 // faz o sign-in, atualiza o estado e redireciona
   } catch (err: any) {
     console.error(err);                           // o AuthProvider já povoa o erro
   } finally {
