@@ -4,6 +4,7 @@ import { User, Role } from './types';
 import { ApiError } from './services/apiClient';
 import { supabase } from './src/lib/supabaseClient';
 import * as authService from './services/auth'; // manter apenas para getMe()
+import { ensureUser } from './services/users';
 
 type AuthState = 'loading' | 'authed' | 'guest';
 
@@ -149,17 +150,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      // Sinaliza usuário provisório a partir do token (para redirecionar por role sem esperar /auth/me)
+      // Garante que o usuário exista no backend (ownerId = sub)
       const { data: { user: sUser } } = await supabase.auth.getUser();
+      try {
+        if (sUser?.email) {
+          const meta: any = sUser.user_metadata || {};
+          const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
+          const r = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
+          await ensureUser({ authId: sUser.id, ownerId: meta.sub || sUser.id, email: sUser.email, name: meta.name || (sUser.email.split('@')[0]), role: r as any });
+        }
+      } catch (_) { /* se falhar, seguimos com o fluxo; fetchBackendUser tenta novamente */ }
+      // Sinaliza usuário provisório a partir do token (para redirecionar por role sem esperar /auth/me)
       const meta: any = sUser?.user_metadata || {};
       const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
       const role = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
       if (sUser && sUser.email) {
-        setUser({ id: sUser.id, name: meta.name || (sUser.email.split('@')[0]), email: sUser.email, role: role as any });
+        const r = role as any;
+        setUser({ id: sUser.id, name: meta.name || (sUser.email.split('@')[0]), email: sUser.email, role: r });
         setState('authed');
+        // Redireciona imediatamente pela role do token
+        const dest = r === 'ADMIN' ? '/dashboard/admin' : r === 'MANAGER' ? '/dashboard/manager' : '/dashboard/broker';
+        navigate(dest, { replace: true });
+      } else {
+        // Sem user, segue para dashboard genérico; Redirector cuidará
+        navigate('/dashboard', { replace: true });
       }
-      // Navegação otimista; onAuthStateChange fará fetchBackendUser para confirmar perfil/rota
-      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       console.error('Login failed', err);
       setError(mapAuthError(err?.message));
@@ -189,6 +204,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Usuário já autenticado; define user provisório e redireciona
         const sUser = data.user;
         const meta: any = sUser?.user_metadata || {};
+        try {
+          if (sUser?.email) {
+            const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
+            const r = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
+            await ensureUser({ authId: sUser.id, ownerId: meta.sub || sUser.id, email: sUser.email, name: meta.name || (sUser.email.split('@')[0]), role: r as any });
+          }
+        } catch (_) { /* ignore */ }
         const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
         const r = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
         if (sUser && sUser.email) {

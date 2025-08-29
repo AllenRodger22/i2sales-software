@@ -2,7 +2,8 @@ import { apiClient, ApiError } from './apiClient';
 import { Role, User } from '../types';
 
 type EnsureUserPayload = {
-  authId: string; // Supabase auth user id
+  authId: string; // Supabase auth user id (sub)
+  ownerId?: string; // mirror do sub para backends que esperam ownerId
   email: string;
   name?: string;
   role?: Role;
@@ -20,6 +21,7 @@ export async function ensureUser(payload: EnsureUserPayload): Promise<User> {
   const body = {
     ...payload,
     auth_id: payload.authId, // for backends expecting snake_case
+    owner_id: payload.ownerId || payload.authId,
   } as any;
   // Prefer an idempotent ensure endpoint when available
   try {

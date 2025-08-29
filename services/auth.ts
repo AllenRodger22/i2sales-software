@@ -51,7 +51,7 @@ export const getMeFull = async () => {
       const role = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
       const name = (meta.name || (sUser?.email ? sUser.email.split('@')[0] : '') || '').toString();
       if (sUser && sUser.email) {
-        await ensureUser({ authId: sUser.id, email: sUser.email, name, role: role as Role });
+        await ensureUser({ authId: sUser.id, ownerId: meta.sub || sUser.id, email: sUser.email, name, role: role as Role });
         // retry /auth/me once after ensuring
         return await apiClient.get<{ user: User; profile?: any; routing?: any }>('/auth/me');
       }
