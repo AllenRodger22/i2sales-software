@@ -1,4 +1,4 @@
-import { apiClient, ApiError } from './apiClient';
+import { apiClient, ApiError } from './api';
 import { Role, User } from '../types';
 
 type EnsureUserPayload = {
