@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 
@@ -6,7 +6,7 @@ import { useAuth } from '../auth/useAuth';
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, signUp, error } = useAuth();
+  const { signIn, signUp, error, user } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,15 +15,21 @@ const LoginPage: React.FC = () => {
 
   const from = (location.state as any)?.from?.pathname || '/';
 
+  // Se o usuário já estiver autenticado (por exemplo, após o login completar
+  // e o estado global ser atualizado), redireciona para a rota original ou
+  // para a raiz como fallback.
+  useEffect(() => {
+    if (user) {
+      navigate(from, { replace: true });
+    }
+  }, [user, from, navigate]);
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
     setLoading(true);
-    const { ok } = await signIn(email, password);
+    await signIn(email, password);
     setLoading(false);
-    if (ok) {
-      navigate(from, { replace: true });
-    }
   }
 
   async function handleSignUp(e: React.FormEvent) {
