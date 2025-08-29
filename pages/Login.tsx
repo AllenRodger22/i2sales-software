@@ -26,22 +26,22 @@ const LoginPage: React.FC = () => {
       }
   }, [authError]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLocalError(null);
-    setSuccessMessage(null);
-    
-    try {
-      setSubmitting(true);
-      await login(email, password);
-      // AuthProvider já navega para /dashboard após sucesso
-    } catch (err: any) {
-      // AuthProvider sets the error, which is picked up by the useEffect
-      console.error(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLocalError(null);
+  setSuccessMessage(null);
+
+  try {
+    setSubmitting(true);
+    await login(email, password);                 // faz o sign-in e atualiza o estado
+    navigate('/dashboard', { replace: true });   // empurra pro redirector por role
+  } catch (err: any) {
+    console.error(err);                           // o AuthProvider já povoa o erro
+  } finally {
+    setSubmitting(false);
+  }
+};
+
   
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
