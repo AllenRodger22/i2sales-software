@@ -5,7 +5,8 @@ import React from 'react';
 // FIX: Changed to namespace import to fix module resolution issues.
 import * as ReactRouterDOM from 'react-router-dom';
 import { Client, Role, ClientStatus } from '../types';
-import { useAuth } from '../auth';
+// Align authentication hook with the new provider located in src/auth/useAuth.
+import { useAuth } from '../src/auth/useAuth';
 import Tag from './Tag';
 import { ArchiveIcon, TrashIcon } from './Icons';
 
@@ -21,6 +22,8 @@ interface ClientTableProps {
 const ClientTable: React.FC<ClientTableProps> = ({ clients, loading, onUpdateClient, onDeleteClient, onStatusChange }) => {
     const { user } = useAuth();
     const navigate = ReactRouterDOM.useNavigate();
+
+    const userRole = String((user as any)?.user_metadata?.role || '').toUpperCase();
 
     const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>, clientId: string) => {
         // Prevent navigation when clicking on buttons inside the row
@@ -82,7 +85,7 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, loading, onUpdateCli
                                     >
                                         <ArchiveIcon className="w-5 h-5" />
                                     </button>
-                                    {user?.role === Role.ADMIN && (
+                                    {userRole === Role.ADMIN && (
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); onDeleteClient(client.id); }}
                                             className="p-2 text-gray-400 hover:text-red-400 hover:bg-white/10 rounded-full transition-colors"
