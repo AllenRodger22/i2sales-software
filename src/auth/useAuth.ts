@@ -44,21 +44,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
     (async () => {
-      // Master login (bypass) - apenas se habilitado
-      const MASTER_ENABLED = (import.meta as any)?.env?.VITE_ENABLE_MASTER_LOGIN === '1';
-      const masterActive = typeof window !== 'undefined' && window.localStorage.getItem('i2s-master') === '1';
-      if (MASTER_ENABLED && masterActive) {
-        // cria usuário ADMIN sintético
-        const fakeUser: any = {
-          id: 'master',
-          email: (import.meta as any)?.env?.VITE_MASTER_EMAIL || 'Master@sudo.com',
-          user_metadata: { name: 'Master User', role: 'ADMIN' },
-        };
-        setSession(null);
-        setUser(fakeUser);
-        setLoading(false);
-        return;
-      }
       const { data } = await supabase.auth.getSession();
       if (!mounted) return;
       setSession(data.session ?? null);
@@ -79,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError(null);
       }
       if (event === 'TOKEN_REFRESHED') {
-        // Access token foi atualizado silenciosamente - nada a fazer.
+        // Access token foi atualizado silenciosamente — nada a fazer.
       }
     });
 
@@ -104,21 +89,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = useCallback(async (email: string, password: string) => {
     setError(null);
-    // Master login (bypass) - somente quando habilitado via env
-    const MASTER_ENABLED = (import.meta as any)?.env?.VITE_ENABLE_MASTER_LOGIN === '1';
-    const MASTER_EMAIL = ((import.meta as any)?.env?.VITE_MASTER_EMAIL || 'Master@sudo.com').toString();
-    const MASTER_PASSWORD = ((import.meta as any)?.env?.VITE_MASTER_PASSWORD || 'sudoapt').toString();
-    if (MASTER_ENABLED && email.trim().toLowerCase() === MASTER_EMAIL.toLowerCase() && password === MASTER_PASSWORD) {
-      const fakeUser: any = {
-        id: 'master',
-        email: MASTER_EMAIL,
-        user_metadata: { name: 'Master User', role: 'ADMIN' },
-      };
-      setUser(fakeUser);
-      setSession(null);
-      try { window.localStorage.setItem('i2s-master', '1'); } catch {}
-      return { ok: true };
-    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       const msg = mapAuthError(error.message);
@@ -130,8 +100,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOutFn = useCallback(async () => {
     setError(null);
-    // Limpa master mode, se estiver ativo
-    try { window.localStorage.removeItem('i2s-master'); } catch {}
     await supabase.auth.signOut(); // limpa LocalStorage e estados via listener
   }, []);
 

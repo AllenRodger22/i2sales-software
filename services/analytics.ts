@@ -1,24 +1,12 @@
 import { apiClient } from './apiClient';
 import { ProductivityData, FunnelAnalyticsData, Role } from '../types';
 
-const isMaster = () => {
-  try { return (import.meta as any)?.env?.VITE_ENABLE_MASTER_LOGIN === '1' && window.localStorage.getItem('i2s-master') === '1'; } catch { return false; }
-};
-
 export async function getBrokerKpis(_currentUserId: string): Promise<{ // userId is now inferred from token
   leadsEmTratativa: number;
   leadsPrimeiroAtendimento: number;
   totalLeads: number;
   followUpAtrasado: number;
 }> {
-  if (isMaster()) {
-    return {
-      leadsEmTratativa: 8,
-      leadsPrimeiroAtendimento: 5,
-      totalLeads: 42,
-      followUpAtrasado: 3,
-    };
-  }
   return apiClient.get('/analytics/broker-kpis');
 }
 
@@ -29,22 +17,6 @@ export async function getProductivityData(params: {
   brokerId?: string;
   currentUserId: string;
 }): Promise<ProductivityData> {
-  if (isMaster()) {
-    const now = new Date();
-    const days = 10;
-    const daily = Array.from({ length: days }, (_, i) => {
-      const d = new Date(now.getTime() - (days - i) * 86400000).toISOString().split('T')[0];
-      return { date: d, ligacoes: Math.floor(Math.random() * 8), ce: 0, tratativas: 0, documentacao: 0, vendas: 0 };
-    });
-    const sum = (k: keyof (typeof daily)[number]) => daily.reduce((a, x) => a + Number(x[k] || 0), 0);
-    return {
-      kpis: { ligacoes: sum('ligacoes'), ce: 0, tratativas: 0, documentacao: 0, vendas: 0 },
-      managerKpis: { vgv: 0, oportunidade: 0, ligacoes: sum('ligacoes'), vendas: 0 },
-      timeseries: { daily },
-      breakdown: { porOrigem: [], porBroker: [] },
-      brokers: [],
-    };
-  }
   const queryParams = new URLSearchParams({
     startDate: params.startDate,
     endDate: params.endDate,
@@ -105,21 +77,6 @@ export async function getFunnelAnalyticsData(params: {
   brokerId?: string;
   currentUserId: string;
 }): Promise<FunnelAnalyticsData> {
-  if (isMaster()) {
-    const funnel = [
-      { stage: 'Primeiro Atendimento', count: 12 },
-      { stage: 'Em Análise', count: 6 },
-      { stage: 'Doc Completa', count: 2 },
-      { stage: 'Fechado', count: 1 },
-    ];
-    const conversionRates: Record<string, number> = {
-      'Primeiro Atendimento->Em Análise': 50,
-      'Em Análise->Doc Completa': 33,
-      'Doc Completa->Fechado': 50,
-      fechamento: 8,
-    };
-    return { funnel, conversionRates };
-  }
   const queryParams = new URLSearchParams({
     startDate: params.startDate,
     endDate: params.endDate,

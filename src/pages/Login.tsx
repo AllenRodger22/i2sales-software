@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-// Use the app-wide AuthProvider from project root
-import { useAuth } from '../../auth';
+import { useAuth } from '../auth/useAuth';
 
 // Página de Login/Registro combinada com UI minimalista (glassmorphism)
 const LoginPage: React.FC = () => {
@@ -103,3 +102,4 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
+
