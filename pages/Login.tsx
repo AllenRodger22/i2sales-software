@@ -7,6 +7,7 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [view, setView] = useState<'login' | 'forgot_password'>('login');
   
   const { login, sendPasswordResetEmail, state, error: authError } = useAuth();
@@ -31,12 +32,14 @@ const LoginPage: React.FC = () => {
     setSuccessMessage(null);
     
     try {
+      setSubmitting(true);
       await login(email, password);
-      // Garante navegação imediata após login
-      navigate('/dashboard', { replace: true });
+      // AuthProvider já navega para /dashboard após sucesso
     } catch (err: any) {
       // AuthProvider sets the error, which is picked up by the useEffect
       console.error(err);
+    } finally {
+      setSubmitting(false);
     }
   };
   
@@ -56,7 +59,7 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const isFormDisabled = state === 'loading' || !!successMessage;
+  const isFormDisabled = submitting || !!successMessage;
 
   const renderLoginView = () => (
     <>
@@ -85,7 +88,7 @@ const LoginPage: React.FC = () => {
           </button>
         </div>
         <button type="submit" disabled={isFormDisabled} className="btn btn-primary w-full">
-          {state === 'loading' ? 'Entrando...' : 'Entrar'}
+          {submitting ? 'Entrando...' : 'Entrar'}
         </button>
       </form>
       <p className="mt-6 text-center text-sm text-gray-400">

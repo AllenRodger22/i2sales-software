@@ -149,7 +149,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      // Navegação otimista após login; RouteGuard aguardará estado 'authed'.
+      // Sinaliza usuário provisório a partir do token (para redirecionar por role sem esperar /auth/me)
+      const { data: { user: sUser } } = await supabase.auth.getUser();
+      const meta: any = sUser?.user_metadata || {};
+      const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
+      const role = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
+      if (sUser && sUser.email) {
+        setUser({ id: sUser.id, name: meta.name || (sUser.email.split('@')[0]), email: sUser.email, role: role as any });
+        setState('authed');
+      }
+      // Navegação otimista; onAuthStateChange fará fetchBackendUser para confirmar perfil/rota
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       console.error('Login failed', err);
@@ -163,34 +172,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setState('loading');
     setError(null);
     try {
-      // 1) Registrar no backend: POST /api/v1/auth/register
-      //    O apiClient já usa BASE_URL e não envia Authorization antes do login
-      await authService.register({ name, email, password, role });
+      // Cadastro é no Supabase; backend só consome o access_token depois
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name, requested_role: role, role },
+          emailRedirectTo: SITE_URL,
+        },
+      });
+      if (error) throw error;
 
-      // 2) Login no Supabase com as mesmas credenciais
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) throw signInError;
+      const confirmationSent = !data.session; // se null, confirmação de email ativa
 
-      // 3) Recuperar token/sessão e consultar /api/me
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error('Sessão não disponível após login.');
-      }
-
-      // 4) Buscar perfil do backend e redirecionar conforme routing.target/role
-      await fetchBackendUser();
-
-      // O listener onAuthStateChange também chamará fetchBackendUser; manter estado consistente
-      setError(null);
-      return { confirmationSent: false };
-    } catch (err: any) {
-      console.error('Registration flow failed', err);
-      // Mapear 409 do backend explicitamente
-      if (err?.status === 409 || (err?.message && String(err.message).toLowerCase().includes('already'))) {
-        setError('Um usuário com este e-mail já existe.');
+      if (!confirmationSent) {
+        // Usuário já autenticado; define user provisório e redireciona
+        const sUser = data.user;
+        const meta: any = sUser?.user_metadata || {};
+        const roleMeta = (meta.role || meta.requested_role || 'BROKER').toString().toUpperCase();
+        const r = (roleMeta === 'ADMIN' || roleMeta === 'MANAGER' || roleMeta === 'BROKER') ? roleMeta : 'BROKER';
+        if (sUser && sUser.email) {
+          setUser({ id: sUser.id, name: meta.name || (sUser.email.split('@')[0]), email: sUser.email, role: r as any });
+          setState('authed');
+        }
+        navigate('/dashboard', { replace: true });
+        // onAuthStateChange fará fetchBackendUser e ajustará rota final
       } else {
-        setError(mapAuthError(err?.message));
+        setState('guest');
       }
+      return { confirmationSent };
+    } catch (err: any) {
+      console.error('Registration failed', err);
+      setError(mapAuthError(err?.message));
       setState('guest');
       throw err;
     }
